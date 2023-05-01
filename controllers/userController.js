@@ -6,7 +6,6 @@ exports.getAllUsers = (req, res) => {
 };
 
 exports.getUser = (req, res) => {
-  const id = req.params.id;
   res.status(500).json({
     status: 'error',
     message: 'route not available',

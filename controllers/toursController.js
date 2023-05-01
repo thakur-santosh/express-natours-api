@@ -1,4 +1,5 @@
 const Tour = require('../models/tourModel');
+const APIFeatures = require('../utils/apiFeatures');
 
 exports.aliasingTopTours = (req, res, next) => {
   req.query.limit = '5';
@@ -25,48 +26,12 @@ exports.postTours = async (req, res) => {
 
 exports.getTours = async (req, res) => {
   try {
-    // build the query
-    // 1) filtering
-    const queryObj = { ...req.query };
-    const excludesFields = ['page', 'sort', 'limit', 'fields'];
-    excludesFields.forEach((field) => delete queryObj[field]);
-    // 1.b) advanced filtering
-    let queryString = JSON.stringify(queryObj);
-    queryString = queryString.replace(
-      /\b(gte|gt|lte|lt)\b/g,
-      (match) => `$${match}`
-    );
-
-    // create query promise object by not using await here so that we can attach the other methods also
-    // const tours = await Tour.find(req.query);
-    let query = Tour.find(JSON.parse(queryString));
-
-    // 2) sorting
-    if (req.query.sort) {
-      query = query.sort(req.query.sort);
-    } else {
-      query = query.sort('createdAt');
-    }
-    // fields limiting
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-      query = query.select(fields);
-    } else {
-      query = query.select('-__v');
-    }
-    // pagination
-    const page = req.query.page || 1;
-    const limit = req.query.limit || 10;
-    const skip = (page - 1) * limit;
-    query = query.skip(Number(skip)).limit(Number(limit));
-
-    if (req.query.page) {
-      const totalTour = await Tour.countDocuments();
-      if (skip >= totalTour) throw new Error('Page does not exist');
-    }
-
     // execute query
-    const tours = await query;
+    const feature = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .limitFields()
+      .pagination();
+    const tours = await feature.query;
 
     // send response
     res.status(200).json({
@@ -127,6 +92,37 @@ exports.deleteTour = async (req, res) => {
     res.status(404).json({
       status: 'failed',
       message: 'Deletion failed',
+    });
+  }
+};
+
+exports.getTourStats = async (req, res) => {
+  try {
+    const stats = await Tour.aggregate([
+      {
+        $match: { ratingAverage: { $gte: 4.5 } },
+      },
+      {
+        $group: {
+          _id: '$difficulty',
+          numTours: { $sum: 1 },
+          avgRating: { $avg: '$ratingAverage' },
+          avgPrice: { $avg: '$price' },
+          numRatings: { $sum: '$ratingQuantities' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' },
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      status: 'success',
+      data: stats,
+    });
+  } catch (error) {
+    res.status(404).json({
+      status: 'failed',
+      message: error,
     });
   }
 };
