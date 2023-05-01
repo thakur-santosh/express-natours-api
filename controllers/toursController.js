@@ -1,31 +1,4 @@
-// const fs = require('fs');
-// const path = require('path');
-
 const Tour = require('../models/tourModel');
-
-// const dirPath = path.join(__dirname, '../dev-data/data/tours-simple.json');
-// const tours = JSON.parse(fs.readFileSync(dirPath, 'utf8'));
-
-// exports.checkId = (req, res, next, value) => {
-//   console.log(req.params.id, value);
-//   if (value > tours.length) {
-//     return res.status(400).json({
-//       status: 'fail',
-//       message: 'Invalid Id',
-//     });
-//   }
-//   next();
-// };
-
-// exports.checkBody = (req, res, next) => {
-//   if (!req.body.name || !req.body.price) {
-//     return res.status(400).json({
-//       status: 'Invalid Body',
-//       message: 'Missing name or price',
-//     });
-//   }
-//   next();
-// };
 
 exports.aliasingTopTours = (req, res, next) => {
   req.query.limit = '5';
